@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -25,3 +28,17 @@ jobs:
         with:
           name: Tattle
           path: target/Tattle-*.jar
+
+      # Commit the built jar back to the deploy branch so environments
+      # without access to artifact storage can fetch it over git.
+      - name: Commit jar to deploy branch
+        if: github.ref == 'refs/heads/claude/tattle-minecraft-deploy-ldhlpx'
+        run: |
+          mkdir -p dist
+          cp target/Tattle-*.jar dist/
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f dist/*.jar
+          git diff --cached --quiet && exit 0
+          git commit -m "CI: publish built jar to dist/ [skip ci]"
+          git push
