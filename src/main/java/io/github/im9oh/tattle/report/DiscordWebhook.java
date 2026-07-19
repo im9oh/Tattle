@@ -2,7 +2,7 @@ package io.github.im9oh.tattle.report;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import io.github.im9oh.tattle.TattlePlugin;
+import io.github.im9oh.tattle.TattleContext;
 import io.github.im9oh.tattle.config.Settings;
 
 import java.net.URI;
@@ -38,7 +38,7 @@ public final class DiscordWebhook {
         }
     }
 
-    private final TattlePlugin plugin;
+    private final TattleContext ctx;
     private final HttpClient http = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build();
@@ -48,8 +48,8 @@ public final class DiscordWebhook {
     private volatile long backoffUntil = 0;
     private volatile long lastErrorLogAt = 0;
 
-    public DiscordWebhook(TattlePlugin plugin) {
-        this.plugin = plugin;
+    public DiscordWebhook(TattleContext ctx) {
+        this.ctx = ctx;
     }
 
     /** Thread-safe. Oldest embeds are dropped if the queue overflows. */
@@ -65,7 +65,7 @@ public final class DiscordWebhook {
 
     /** Sends one batch if due. Called from an async task (and once on shutdown). */
     public void flush() {
-        Settings settings = plugin.settings();
+        Settings settings = ctx.settings();
         if (settings.webhookUrl.isEmpty() || System.currentTimeMillis() < backoffUntil) {
             return;
         }
@@ -138,7 +138,7 @@ public final class DiscordWebhook {
         long now = System.currentTimeMillis();
         if (now - lastErrorLogAt > 60_000) {
             lastErrorLogAt = now;
-            plugin.getLogger().warning(message);
+            ctx.logger().warning(message);
         }
     }
 

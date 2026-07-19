@@ -139,7 +139,7 @@ rules:
 
   console:
     - name: error
-      pattern: '(?i)\b(exception|severe|internal error)\b'
+      pattern: '(?i)(exception\b|\bsevere\b|\binternal error\b|stack trace)'
       score: 5.0
       severity: MEDIUM
     - name: watchdog

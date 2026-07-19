@@ -2,9 +2,6 @@ package io.github.im9oh.tattle.config;
 
 import io.github.im9oh.tattle.model.RegexRule;
 import io.github.im9oh.tattle.model.Severity;
-import org.bukkit.Material;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -13,7 +10,11 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Logger;
 
-/** Immutable snapshot of the plugin configuration. Reload swaps the whole object. */
+/**
+ * Immutable snapshot of the plugin configuration. Reload swaps the whole
+ * object. Deliberately Bukkit-free so the same settings (and everything
+ * downstream of them) run in the standalone simulator.
+ */
 public final class Settings {
 
     public record SpamRule(long windowMillis, int maxHits, double score, Severity severity) {}
@@ -55,18 +56,19 @@ public final class Settings {
     public final SpamRule blockBreak;
     public final boolean gamemodeEnabled;
     public final WatchedEntry gamemodeChange;
-    public final Map<Material, WatchedEntry> watchedItems;
+    /** Keyed by normalized material name, e.g. "TNT", "LAVA_BUCKET". */
+    public final Map<String, WatchedEntry> watchedItems;
 
     // Regex rules
     public final List<RegexRule> chatRules;
     public final List<RegexRule> commandRules;
     public final List<RegexRule> consoleRules;
 
-    public Settings(FileConfiguration c, Logger log) {
+    public Settings(Conf c, Logger log) {
         this.webhookUrl = c.getString("discord.webhook-url", "").trim();
         this.webhookUsername = c.getString("discord.username", "Tattle");
         this.batchIntervalSeconds = Math.max(2, c.getInt("discord.batch-interval-seconds", 10));
-        this.minSeverity = Severity.parse(c.getString("discord.min-severity"), Severity.LOW);
+        this.minSeverity = Severity.parse(c.getString("discord.min-severity", null), Severity.LOW);
 
         this.reportThreshold = c.getDouble("reporting.report-threshold", 5.0);
         this.attentionThreshold = c.getDouble("reporting.attention-threshold", 12.0);
@@ -82,11 +84,11 @@ public final class Settings {
                 c.getInt("monitors.chat.caps.min-length", 12),
                 c.getDouble("monitors.chat.caps.max-ratio", 0.8),
                 c.getDouble("monitors.chat.caps.score", 1.5),
-                Severity.parse(c.getString("monitors.chat.caps.severity"), Severity.LOW));
+                Severity.parse(c.getString("monitors.chat.caps.severity", null), Severity.LOW));
 
         this.commandsEnabled = c.getBoolean("monitors.commands.enabled", true);
         this.commandSpam = spamRule(c, "monitors.commands.spam", "max-commands", 10, 12, 4.0, Severity.MEDIUM);
-        this.watchedCommands = watchedMap(c.getConfigurationSection("monitors.commands.watched"));
+        this.watchedCommands = watchedMap(c, "monitors.commands.watched", key -> key.toLowerCase(Locale.ROOT));
 
         this.consoleEnabled = c.getBoolean("monitors.console.enabled", true);
 
@@ -95,43 +97,38 @@ public final class Settings {
         this.gamemodeEnabled = c.getBoolean("monitors.actions.gamemode-change.enabled", true);
         this.gamemodeChange = new WatchedEntry(
                 c.getDouble("monitors.actions.gamemode-change.score", 3.0),
-                Severity.parse(c.getString("monitors.actions.gamemode-change.severity"), Severity.MEDIUM));
-        Map<String, WatchedEntry> items = watchedMap(c.getConfigurationSection("monitors.actions.watched-items"));
-        Map<Material, WatchedEntry> materials = new LinkedHashMap<>();
-        for (Map.Entry<String, WatchedEntry> e : items.entrySet()) {
-            Material m = Material.matchMaterial(e.getKey());
-            if (m != null) {
-                materials.put(m, e.getValue());
-            } else {
-                log.warning("Unknown material in monitors.actions.watched-items: " + e.getKey());
-            }
-        }
-        this.watchedItems = Collections.unmodifiableMap(materials);
+                Severity.parse(c.getString("monitors.actions.gamemode-change.severity", null), Severity.MEDIUM));
+        this.watchedItems = watchedMap(c, "monitors.actions.watched-items", Settings::normalizeMaterial);
 
         this.chatRules = List.copyOf(RegexRule.parseList(c.getMapList("rules.chat"), "rules.chat", log));
         this.commandRules = List.copyOf(RegexRule.parseList(c.getMapList("rules.commands"), "rules.commands", log));
         this.consoleRules = List.copyOf(RegexRule.parseList(c.getMapList("rules.console"), "rules.console", log));
     }
 
-    private static SpamRule spamRule(FileConfiguration c, String path, String maxKey,
+    /** "lava bucket" / "lava-bucket" / "LAVA_BUCKET" → "LAVA_BUCKET" */
+    public static String normalizeMaterial(String name) {
+        return name.trim().toUpperCase(Locale.ROOT).replace(' ', '_').replace('-', '_');
+    }
+
+    private static SpamRule spamRule(Conf c, String path, String maxKey,
                                      int defWindow, int defMax, double defScore, Severity defSeverity) {
         return new SpamRule(
                 Math.max(1, c.getInt(path + ".window-seconds", defWindow)) * 1000L,
                 Math.max(1, c.getInt(path + "." + maxKey, defMax)),
                 c.getDouble(path + ".score", defScore),
-                Severity.parse(c.getString(path + ".severity"), defSeverity));
+                Severity.parse(c.getString(path + ".severity", null), defSeverity));
     }
 
-    private static Map<String, WatchedEntry> watchedMap(ConfigurationSection section) {
+    private interface KeyNormalizer {
+        String apply(String key);
+    }
+
+    private static Map<String, WatchedEntry> watchedMap(Conf c, String path, KeyNormalizer normalizer) {
         Map<String, WatchedEntry> map = new LinkedHashMap<>();
-        if (section == null) {
-            return Collections.unmodifiableMap(map);
-        }
-        for (String key : section.getKeys(false)) {
-            ConfigurationSection entry = section.getConfigurationSection(key);
-            double score = entry != null ? entry.getDouble("score", 3.0) : 3.0;
-            Severity severity = Severity.parse(entry != null ? entry.getString("severity") : null, Severity.MEDIUM);
-            map.put(key.toLowerCase(Locale.ROOT), new WatchedEntry(score, severity));
+        for (String key : c.keys(path)) {
+            double score = c.getDouble(path + "." + key + ".score", 3.0);
+            Severity severity = Severity.parse(c.getString(path + "." + key + ".severity", null), Severity.MEDIUM);
+            map.put(normalizer.apply(key), new WatchedEntry(score, severity));
         }
         return Collections.unmodifiableMap(map);
     }

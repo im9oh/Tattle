@@ -1,0 +1,45 @@
+# Tattle simulator demo script. Run from the project root with:
+#   mvn -q compile exec:java -Dexec.args="--script sim-demo.txt"
+# Add --webhook https://discord.com/api/webhooks/... to see real Discord embeds.
+
+# Normal chat — observed, nothing reported.
+chat Steve hey, anyone up for some mining?
+chat Alex sure, meet at spawn
+
+# Advertising rule (MEDIUM, score 4) — accumulates attention, below the 5.0 report threshold.
+chat Spammer join my server at coolserver.net
+
+# Watched command (HIGH, score 8) — reported immediately.
+cmd Herobrine /op Herobrine
+
+# Console-run watched command — also reported, actor CONSOLE.
+concmd /ban Steve griefing
+
+# Console log line matching the error pattern.
+log java.lang.NullPointerException: Cannot invoke ChunkThing.load()
+
+# Rapid block breaking: 60 breaks blows through the 50-per-5s window.
+break Griefer 60
+
+# Watched item placement.
+place Griefer TNT
+
+# Sustained low-level misbehavior: caps (LOW, 1.5 each) accumulate until the
+# attention threshold (12.0) trips and produces a report on its own.
+chat Ranter THIS SERVER IS SO UNFAIR I LOST EVERYTHING
+chat Ranter GIVE ME BACK MY STUFF RIGHT NOW OR ELSE
+chat Ranter I AM SERIOUSLY SO ANGRY ABOUT ALL OF THIS
+chat Ranter WHY DOES NOBODY EVER LISTEN TO ME HERE
+chat Ranter THIS IS THE WORST SERVER I HAVE EVER PLAYED
+chat Ranter EVERYONE HERE IS AGAINST ME I SWEAR
+chat Ranter I WILL NOT CALM DOWN STOP TELLING ME TO
+chat Ranter OKAY THAT IS IT I AM DONE WITH ALL OF YOU
+
+# Informational events (direct reports).
+join Newbie
+kick Griefer flying is not enabled on this server
+
+# Inspect the state.
+score
+status
+quit

@@ -1,7 +1,12 @@
 package io.github.im9oh.tattle;
 
 import io.github.im9oh.tattle.command.TattleCommand;
+import io.github.im9oh.tattle.config.BukkitConf;
 import io.github.im9oh.tattle.config.Settings;
+import io.github.im9oh.tattle.inspect.ActionInspector;
+import io.github.im9oh.tattle.inspect.ChatInspector;
+import io.github.im9oh.tattle.inspect.CommandInspector;
+import io.github.im9oh.tattle.inspect.ConsoleInspector;
 import io.github.im9oh.tattle.monitor.ChatMonitor;
 import io.github.im9oh.tattle.monitor.CommandMonitor;
 import io.github.im9oh.tattle.monitor.ConsoleMonitor;
@@ -31,7 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * By design there is no punishment code in this plugin: no bans, no kicks,
  * no mutes, no cancelled events. Staff decide what to do with reports.
  */
-public final class TattlePlugin extends org.bukkit.plugin.java.JavaPlugin implements Listener {
+public final class TattlePlugin extends org.bukkit.plugin.java.JavaPlugin implements Listener, TattleContext {
 
     private volatile Settings settings;
     private ScoringEngine engine;
@@ -48,7 +53,7 @@ public final class TattlePlugin extends org.bukkit.plugin.java.JavaPlugin implem
     public void onEnable() {
         enabledAtMillis = System.currentTimeMillis();
         saveDefaultConfig();
-        settings = new Settings(getConfig(), getLogger());
+        settings = new Settings(new BukkitConf(getConfig()), getLogger());
 
         webhook = new DiscordWebhook(this);
         reports = new ReportManager(this, webhook);
@@ -56,11 +61,11 @@ public final class TattlePlugin extends org.bukkit.plugin.java.JavaPlugin implem
 
         PluginManager pm = getServer().getPluginManager();
         pm.registerEvents(this, this);
-        pm.registerEvents(new ChatMonitor(this, engine), this);
-        pm.registerEvents(new CommandMonitor(this, engine), this);
-        pm.registerEvents(new PlayerActionMonitor(this, engine), this);
+        pm.registerEvents(new ChatMonitor(this, new ChatInspector(this, engine)), this);
+        pm.registerEvents(new CommandMonitor(this, new CommandInspector(this, engine)), this);
+        pm.registerEvents(new PlayerActionMonitor(this, engine, new ActionInspector(this, engine)), this);
 
-        consoleMonitor = new ConsoleMonitor(this, engine);
+        consoleMonitor = new ConsoleMonitor(this, new ConsoleInspector(this, engine));
         consoleMonitor.attach();
 
         PluginCommand command = getCommand("tattle");
@@ -94,7 +99,7 @@ public final class TattlePlugin extends org.bukkit.plugin.java.JavaPlugin implem
     /** Re-reads config.yml and swaps in a fresh settings snapshot. */
     public void reloadSettings() {
         reloadConfig();
-        settings = new Settings(getConfig(), getLogger());
+        settings = new Settings(new BukkitConf(getConfig()), getLogger());
         startFlushTask();
         for (Player player : getServer().getOnlinePlayers()) {
             updateExempt(player);
@@ -110,8 +115,14 @@ public final class TattlePlugin extends org.bukkit.plugin.java.JavaPlugin implem
         flushTask = getServer().getScheduler().runTaskTimerAsynchronously(this, webhook::flush, ticks, ticks);
     }
 
+    @Override
     public Settings settings() {
         return settings;
+    }
+
+    @Override
+    public java.util.logging.Logger logger() {
+        return getLogger();
     }
 
     public ScoringEngine engine() {

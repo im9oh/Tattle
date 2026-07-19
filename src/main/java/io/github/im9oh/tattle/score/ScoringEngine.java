@@ -1,6 +1,6 @@
 package io.github.im9oh.tattle.score;
 
-import io.github.im9oh.tattle.TattlePlugin;
+import io.github.im9oh.tattle.TattleContext;
 import io.github.im9oh.tattle.config.Settings;
 import io.github.im9oh.tattle.model.Observation;
 import io.github.im9oh.tattle.model.SourceType;
@@ -21,13 +21,13 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public final class ScoringEngine {
 
-    private final TattlePlugin plugin;
+    private final TattleContext ctx;
     private final ReportManager reports;
     private final ScoreKeeper keeper = new ScoreKeeper();
     private final Map<SourceType, AtomicLong> observed = new EnumMap<>(SourceType.class);
 
-    public ScoringEngine(TattlePlugin plugin, ReportManager reports) {
-        this.plugin = plugin;
+    public ScoringEngine(TattleContext ctx, ReportManager reports) {
+        this.ctx = ctx;
         this.reports = reports;
         for (SourceType type : SourceType.values()) {
             observed.put(type, new AtomicLong());
@@ -37,7 +37,7 @@ public final class ScoringEngine {
     /** Scored path: report immediately if notable, otherwise accumulate attention. May be called from any thread. */
     public void observe(Observation obs) {
         observed.get(obs.source()).incrementAndGet();
-        Settings settings = plugin.settings();
+        Settings settings = ctx.settings();
 
         boolean report = obs.score() >= settings.reportThreshold;
         String note = null;

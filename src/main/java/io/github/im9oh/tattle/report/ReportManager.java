@@ -2,7 +2,7 @@ package io.github.im9oh.tattle.report;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import io.github.im9oh.tattle.TattlePlugin;
+import io.github.im9oh.tattle.TattleContext;
 import io.github.im9oh.tattle.config.Settings;
 import io.github.im9oh.tattle.model.Observation;
 
@@ -28,7 +28,7 @@ public final class ReportManager {
     private static final int RECENT_LIMIT = 25;
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HH:mm:ss");
 
-    private final TattlePlugin plugin;
+    private final TattleContext ctx;
     private final DiscordWebhook webhook;
     private final Map<String, Long> lastReportAt = new ConcurrentHashMap<>();
     private final Map<String, Integer> suppressedInCooldown = new ConcurrentHashMap<>();
@@ -36,14 +36,14 @@ public final class ReportManager {
     private final AtomicLong sent = new AtomicLong();
     private final AtomicLong suppressed = new AtomicLong();
 
-    public ReportManager(TattlePlugin plugin, DiscordWebhook webhook) {
-        this.plugin = plugin;
+    public ReportManager(TattleContext ctx, DiscordWebhook webhook) {
+        this.ctx = ctx;
         this.webhook = webhook;
     }
 
     /** May be called from any thread. */
     public void report(Observation obs, String note) {
-        Settings settings = plugin.settings();
+        Settings settings = ctx.settings();
         String key = obs.actorKey() + "|" + obs.category();
         long now = System.currentTimeMillis();
 
@@ -57,10 +57,11 @@ public final class ReportManager {
         Integer repeats = suppressedInCooldown.remove(key);
 
         sent.incrementAndGet();
-        String line = String.format("REPORT [%s] %s — %s: %s (score %.1f)%s",
+        String line = String.format("REPORT [%s] %s — %s: %s (score %.1f)%s%s",
                 obs.severity(), obs.category(), obs.actorName(), obs.summary(), obs.score(),
+                note != null ? " — " + note : "",
                 repeats != null ? " [+" + repeats + " similar suppressed earlier]" : "");
-        plugin.getLogger().info(line);
+        ctx.logger().info(line);
 
         synchronized (recent) {
             recent.addFirst("[" + TIME.format(obs.timestamp().atZone(ZoneId.systemDefault())) + "] " + line);

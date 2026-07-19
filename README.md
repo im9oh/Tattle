@@ -81,6 +81,41 @@ commands and console output. Each regex rule is a `name`, a Java `pattern`
 (matched with `find()`), a `score`, and a `severity`. The shipped rules are
 starting points — extend them to fit your community's standards.
 
+## Testing without a server
+
+Tattle ships with a standalone simulator that runs the exact same pipeline as
+the plugin — same `config.yml`, same rules, same scoring and cooldowns, same
+Discord delivery — fed with fake events from your keyboard or a script. No
+Minecraft server needed.
+
+Interactive session (type events, `help` lists them, Ctrl-D or `quit` to exit):
+
+```
+mvn -q compile exec:java
+```
+
+Run the included demo script (shows immediate reports, attention-score
+accumulation, cooldowns, console rules):
+
+```
+mvn -q compile exec:java -Dexec.args="--script sim-demo.txt"
+```
+
+Test real Discord delivery — pass your webhook and the reports actually arrive
+as embeds in your staff channel:
+
+```
+mvn -q compile exec:java -Dexec.args="--script sim-demo.txt --webhook https://discord.com/api/webhooks/..."
+```
+
+Use `--config path/to/config.yml` to try out a server's live config (defaults
+to `plugins/Tattle/config.yml`, then `src/main/resources/config.yml`). Event
+commands include `chat <player> <msg>`, `cmd <player> /op X`, `concmd /ban X`,
+`log <console line>`, `break <player> 60`, `place <player> TNT`,
+`gamemode <player> creative`, `join`/`kick`/`death`, plus `score`, `status`,
+`recent` and `flush` to inspect state. Because it's the same code path, what
+the simulator reports is what the plugin will report in game.
+
 ## Building
 
 ```
@@ -88,7 +123,8 @@ mvn package
 ```
 
 The jar lands in `target/Tattle-<version>.jar`. No dependencies are shaded;
-everything Tattle uses at runtime (Gson, Log4j) ships with the server.
+everything Tattle uses at runtime (Gson, Log4j, SnakeYAML) ships with the
+server.
 
 ## Design notes
 
