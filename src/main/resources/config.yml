@@ -1,0 +1,156 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Tattle — passive monitoring and reporting.
+#
+# Tattle observes chat, commands, console output and player actions, scores
+# what it sees, and reports notable activity to Discord for human review.
+#
+# Tattle NEVER punishes anyone. No auto-bans, no auto-kicks, no auto-mutes.
+# Staff decide.
+# ──────────────────────────────────────────────────────────────────────────────
+
+discord:
+  # Discord webhook URL (Server Settings → Integrations → Webhooks).
+  # Leave empty to disable Discord delivery; reports still go to the console.
+  webhook-url: ""
+  # Display name used for webhook messages.
+  username: "Tattle"
+  # How often (seconds) queued reports are batched and sent to Discord.
+  batch-interval-seconds: 10
+  # Minimum severity a report needs to be sent to Discord: LOW, MEDIUM, HIGH, CRITICAL.
+  min-severity: LOW
+
+reporting:
+  # A single observation with a score at or above this is reported immediately.
+  report-threshold: 5.0
+  # Each player also has a decaying "attention" score that accumulates from
+  # smaller observations. When it crosses this threshold, a report is sent
+  # (and the attention score resets).
+  attention-threshold: 12.0
+  # Half-life (seconds) of the attention score decay.
+  attention-half-life-seconds: 300
+  # Per player + category cooldown between reports (seconds). Repeats within
+  # the cooldown are counted and summarized in the next report.
+  cooldown-seconds: 120
+  # Informational reports (not scored, sent directly):
+  new-players: true      # first-time joins
+  deaths: false          # player deaths (noisy on most servers)
+  kicks: true            # players kicked by the server or staff
+
+monitors:
+  chat:
+    enabled: true
+    spam:
+      window-seconds: 8
+      max-messages: 6
+      score: 5.0
+      severity: MEDIUM
+    caps:
+      min-length: 12     # only consider messages at least this long
+      max-ratio: 0.8     # uppercase letters / letters
+      score: 1.5
+      severity: LOW
+
+  commands:
+    enabled: true
+    spam:
+      window-seconds: 10
+      max-commands: 12
+      score: 4.0
+      severity: MEDIUM
+    # Commands worth telling staff about (matched on the root command,
+    # namespaces like "minecraft:op" are normalized to "op").
+    watched:
+      op:        {score: 8.0, severity: HIGH}
+      deop:      {score: 8.0, severity: HIGH}
+      stop:      {score: 6.0, severity: HIGH}
+      ban:       {score: 5.0, severity: MEDIUM}
+      ban-ip:    {score: 6.0, severity: HIGH}
+      pardon:    {score: 5.0, severity: MEDIUM}
+      pardon-ip: {score: 5.0, severity: MEDIUM}
+      kick:      {score: 4.0, severity: MEDIUM}
+      whitelist: {score: 4.0, severity: MEDIUM}
+      reload:    {score: 4.0, severity: MEDIUM}
+      gamemode:  {score: 3.0, severity: MEDIUM}
+      give:      {score: 3.0, severity: MEDIUM}
+      enchant:   {score: 2.0, severity: LOW}
+      xp:        {score: 2.0, severity: LOW}
+      effect:    {score: 2.0, severity: LOW}
+      kill:      {score: 3.0, severity: MEDIUM}
+      summon:    {score: 2.0, severity: LOW}
+      fill:      {score: 3.0, severity: MEDIUM}
+      setblock:  {score: 2.0, severity: LOW}
+      execute:   {score: 3.0, severity: MEDIUM}
+      sudo:      {score: 8.0, severity: HIGH}
+      lp:        {score: 6.0, severity: HIGH}
+      luckperms: {score: 6.0, severity: HIGH}
+
+  console:
+    enabled: true
+
+  actions:
+    enabled: true
+    # Sustained fast block breaking (possible nuker / xray tunneling).
+    block-break:
+      window-seconds: 5
+      max-blocks: 50
+      score: 5.0
+      severity: MEDIUM
+    # Switching gamemode (usually paired with a watched command, but catches
+    # plugin/GUI-driven switches too).
+    gamemode-change:
+      enabled: true
+      score: 3.0
+      severity: MEDIUM
+    # Placing or using grief-adjacent items.
+    watched-items:
+      TNT:             {score: 4.0, severity: MEDIUM}
+      TNT_MINECART:    {score: 4.0, severity: MEDIUM}
+      LAVA_BUCKET:     {score: 3.0, severity: MEDIUM}
+      FLINT_AND_STEEL: {score: 2.0, severity: LOW}
+      FIRE_CHARGE:     {score: 2.0, severity: LOW}
+      END_CRYSTAL:     {score: 4.0, severity: MEDIUM}
+
+# Regex rules. Each rule: name, pattern (Java regex, matched with find()),
+# score, severity. Extend these to fit your community's standards.
+rules:
+  chat:
+    - name: advertising
+      pattern: '(?i)\b(?:\d{1,3}\.){3}\d{1,3}\b|\b[\w-]+\.(?:com|net|org|gg|io|xyz|me|co)\b'
+      score: 4.0
+      severity: MEDIUM
+    - name: harassment
+      pattern: '(?i)\b(kys|kill\s+your\s*self|neck\s+your\s*self)\b'
+      score: 6.0
+      severity: HIGH
+    - name: profanity
+      pattern: '(?i)\b(f+u+c+k+\w*|s+h+i+t+t*y*|b+i+t+c+h+\w*|c+u+n+t+s*|a+s+s+h+o+l+e+s*)\b'
+      score: 2.0
+      severity: LOW
+    - name: cheat-talk
+      pattern: '(?i)\b(x-?ray|dup(e|ing|ed)|hack(ed|s|ing)?\s*client|killaura|kill\s+aura|nuker|autoclicker)\b'
+      score: 4.0
+      severity: MEDIUM
+
+  commands:
+    - name: give-op-item
+      pattern: '(?i)^/?(minecraft:)?give\s+\S+\s+\S*(command_block|barrier|structure_block|debug_stick|bedrock)'
+      score: 6.0
+      severity: HIGH
+
+  console:
+    - name: error
+      pattern: '(?i)\b(exception|severe|internal error)\b'
+      score: 5.0
+      severity: MEDIUM
+    - name: watchdog
+      pattern: '(?i)watchdog|server thread dump'
+      score: 7.0
+      severity: HIGH
+    - name: lag
+      pattern: "Can't keep up!"
+      score: 5.0
+      severity: LOW
+    - name: suspicious-movement
+      pattern: '(?i)moved too quickly|moved wrongly|flying is not enabled'
+      score: 5.0
+      severity: MEDIUM

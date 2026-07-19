@@ -1,0 +1,20 @@
+name: Tattle
+version: '${project.version}'
+main: io.github.im9oh.tattle.TattlePlugin
+api-version: '1.21'
+author: im9oh
+description: Passive monitoring and reporting. Observes chat, commands, console and player actions, scores them, and reports notable activity to Discord. Never punishes — staff decide.
+
+commands:
+  tattle:
+    description: Tattle admin commands
+    usage: /tattle <status|reload|test|score|recent>
+    permission: tattle.admin
+
+permissions:
+  tattle.admin:
+    description: Access to /tattle admin commands
+    default: op
+  tattle.exempt:
+    description: Players with this permission are not monitored by Tattle
+    default: false
