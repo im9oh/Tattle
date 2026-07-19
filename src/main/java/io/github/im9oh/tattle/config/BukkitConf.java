@@ -42,6 +42,11 @@ public final class BukkitConf implements Conf {
     }
 
     @Override
+    public List<String> getStringList(String path) {
+        return config.getStringList(path);
+    }
+
+    @Override
     public Set<String> keys(String path) {
         ConfigurationSection section = config.getConfigurationSection(path);
         return section == null ? Set.of() : section.getKeys(false);

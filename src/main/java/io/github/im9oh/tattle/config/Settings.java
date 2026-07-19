@@ -54,6 +54,8 @@ public final class Settings {
     // Action monitor
     public final boolean actionsEnabled;
     public final SpamRule blockBreak;
+    /** Normalized material names; "*_LOG" / "STRIPPED_*" wildcards allowed. */
+    public final List<String> blockBreakIgnored;
     public final boolean gamemodeEnabled;
     public final WatchedEntry gamemodeChange;
     /** Keyed by normalized material name, e.g. "TNT", "LAVA_BUCKET". */
@@ -94,6 +96,9 @@ public final class Settings {
 
         this.actionsEnabled = c.getBoolean("monitors.actions.enabled", true);
         this.blockBreak = spamRule(c, "monitors.actions.block-break", "max-blocks", 5, 50, 5.0, Severity.MEDIUM);
+        this.blockBreakIgnored = c.getStringList("monitors.actions.block-break.ignored-blocks").stream()
+                .map(Settings::normalizeMaterial)
+                .toList();
         this.gamemodeEnabled = c.getBoolean("monitors.actions.gamemode-change.enabled", true);
         this.gamemodeChange = new WatchedEntry(
                 c.getDouble("monitors.actions.gamemode-change.score", 3.0),
@@ -108,6 +113,25 @@ public final class Settings {
     /** "lava bucket" / "lava-bucket" / "LAVA_BUCKET" → "LAVA_BUCKET" */
     public static String normalizeMaterial(String name) {
         return name.trim().toUpperCase(Locale.ROOT).replace(' ', '_').replace('-', '_');
+    }
+
+    /** True if this material is excluded from the rapid-break rate (e.g. tree blocks). */
+    public boolean isIgnoredBreakBlock(String materialName) {
+        String name = normalizeMaterial(materialName);
+        for (String pattern : blockBreakIgnored) {
+            if (pattern.startsWith("*")) {
+                if (name.endsWith(pattern.substring(1))) {
+                    return true;
+                }
+            } else if (pattern.endsWith("*")) {
+                if (name.startsWith(pattern.substring(0, pattern.length() - 1))) {
+                    return true;
+                }
+            } else if (name.equals(pattern)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static SpamRule spamRule(Conf c, String path, String maxKey,

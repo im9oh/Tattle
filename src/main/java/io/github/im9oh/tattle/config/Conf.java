@@ -21,6 +21,9 @@ public interface Conf {
 
     List<Map<?, ?>> getMapList(String path);
 
+    /** List of scalar strings at path; empty if absent. */
+    List<String> getStringList(String path);
+
     /** Immediate child keys of the section at path; empty if absent or not a section. */
     Set<String> keys(String path);
 }

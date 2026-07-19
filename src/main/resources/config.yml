@@ -97,6 +97,25 @@ monitors:
       max-blocks: 50
       score: 5.0
       severity: MEDIUM
+      # Blocks that never count toward the rate. Tree blocks are listed so
+      # tree-felling plugins (TreeFeller etc.) and manual tree farming don't
+      # trip the rule. Material names; a single leading or trailing * wildcard
+      # is allowed. Melon/pumpkin stems are deliberately NOT ignored ("*_STEM"
+      # would catch them) because stem breaking features in dupe methods.
+      ignored-blocks:
+        - "*_LOG"
+        - "*_WOOD"
+        - "*_LEAVES"
+        - "*_HYPHAE"
+        - CRIMSON_STEM
+        - WARPED_STEM
+        - STRIPPED_CRIMSON_STEM
+        - STRIPPED_WARPED_STEM
+        - MANGROVE_ROOTS
+        - MUDDY_MANGROVE_ROOTS
+        - NETHER_WART_BLOCK
+        - WARPED_WART_BLOCK
+        - SHROOMLIGHT
     # Switching gamemode (usually paired with a watched command, but catches
     # plugin/GUI-driven switches too).
     gamemode-change:
