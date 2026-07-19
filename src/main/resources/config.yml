@@ -83,6 +83,8 @@ monitors:
       sudo:      {score: 8.0, severity: HIGH}
       lp:        {score: 6.0, severity: HIGH}
       luckperms: {score: 6.0, severity: HIGH}
+      co:        {score: 4.0, severity: MEDIUM}   # CoreProtect lookups/rollbacks are staff-visible actions
+      seed:      {score: 3.0, severity: MEDIUM}   # world seed enables offline structure/ore location
 
   console:
     enabled: true
@@ -127,7 +129,7 @@ rules:
       score: 2.0
       severity: LOW
     - name: cheat-talk
-      pattern: '(?i)\b(x-?ray|dup(e|ing|ed)|hack(ed|s|ing)?\s*client|killaura|kill\s+aura|nuker|autoclicker)\b'
+      pattern: '(?i)\b(x-?ray|dup(e|ing|ed)|hack(ed|s|ing)?\s*client|killaura|kill\s+aura|nuker|auto-?clicker|baritone|free-?cam|meteor|wurst|horion|book\s*-?bann?(ed|ing)?|chunk\s*-?bann?(ed|ing)?|update\s*suppress(ion|or)?|lag\s*machine)\b'
       score: 4.0
       severity: MEDIUM
 
@@ -154,3 +156,9 @@ rules:
       pattern: '(?i)moved too quickly|moved wrongly|flying is not enabled'
       score: 5.0
       severity: MEDIUM
+    # Crash/dupe exploit fingerprints: oversized book/NBT payloads (book ban,
+    # chunk ban) and packet floods surface in the console like this.
+    - name: exploit-fingerprint
+      pattern: '(?i)packet too (big|large)|oversized (packet|nbt|tag)|too many packets|invalid nbt|book (was )?too (large|big)|tried to send too (much|many)'
+      score: 6.0
+      severity: HIGH
