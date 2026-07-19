@@ -176,8 +176,10 @@ public final class Simulator implements TattleContext {
                 }
                 case "log" -> console.inspect(line.substring(cmd.length()).trim(), "INFO");
                 case "break" -> {
-                    int count = parts.length >= 3 ? Integer.parseInt(parts[2]) : 1;
-                    String material = parts.length >= 4 ? parts[3] : "STONE";
+                    // parts[2] holds the rest of the line: "[count] [material]"
+                    String[] opts = parts.length >= 3 ? parts[2].split("\\s+") : new String[0];
+                    int count = opts.length >= 1 ? Integer.parseInt(opts[0]) : 1;
+                    String material = opts.length >= 2 ? opts[1] : "STONE";
                     for (int i = 0; i < count; i++) {
                         actions.blockBreak(parts[1], uuid(parts[1]), material, "world (0, 64, 0)");
                     }
