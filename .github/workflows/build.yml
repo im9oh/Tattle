@@ -23,6 +23,19 @@ jobs:
       - name: Build with Maven
         run: mvn -B package
 
+      # Behavior check via the standalone simulator: 60 rapid OAK_LOG breaks
+      # must NOT report (tree-block exemption), 60 STONE breaks must report.
+      - name: Simulator smoke test (tree-block exemption)
+        run: |
+          printf 'break Alice 60 OAK_LOG\nbreak Bob 60 STONE\n' \
+            | mvn -q compile exec:java > sim-out.txt 2>&1 || true
+          cat sim-out.txt
+          grep -q 'REPORT.*rapid-break.*Bob' sim-out.txt \
+            || { echo 'FAIL: expected rapid-break report for Bob (STONE)'; exit 1; }
+          grep -q 'REPORT.*Alice' sim-out.txt \
+            && { echo 'FAIL: Alice (OAK_LOG) should be exempt'; exit 1; }
+          echo 'smoke test passed'
+
       - name: Upload plugin jar
         uses: actions/upload-artifact@v4
         with:

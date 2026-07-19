@@ -53,7 +53,7 @@ public final class PlayerActionMonitor implements Listener {
             return;
         }
         inspector.blockBreak(player.getName(), player.getUniqueId(),
-                event.getBlock().getType() + " at " + where(event.getBlock().getLocation()));
+                event.getBlock().getType().name(), where(event.getBlock().getLocation()));
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

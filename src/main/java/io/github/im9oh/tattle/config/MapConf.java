@@ -64,6 +64,19 @@ public final class MapConf implements Conf {
     }
 
     @Override
+    public List<String> getStringList(String path) {
+        List<String> result = new ArrayList<>();
+        if (node(path) instanceof List<?> list) {
+            for (Object entry : list) {
+                if (entry != null && !(entry instanceof Map<?, ?>) && !(entry instanceof List<?>)) {
+                    result.add(String.valueOf(entry));
+                }
+            }
+        }
+        return result;
+    }
+
+    @Override
     public Set<String> keys(String path) {
         Set<String> keys = new LinkedHashSet<>();
         if (node(path) instanceof Map<?, ?> map) {

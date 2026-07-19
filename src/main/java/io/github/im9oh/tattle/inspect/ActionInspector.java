@@ -26,14 +26,18 @@ public final class ActionInspector {
         this.engine = engine;
     }
 
-    public void blockBreak(String actorName, UUID actorId, String lastBlockDescription) {
-        Settings.SpamRule rule = ctx.settings().blockBreak;
+    public void blockBreak(String actorName, UUID actorId, String materialName, String where) {
+        Settings settings = ctx.settings();
+        if (settings.isIgnoredBreakBlock(materialName)) {
+            return; // e.g. tree blocks: TreeFeller-style mass log breaks are legitimate
+        }
+        Settings.SpamRule rule = settings.blockBreak;
         int hits = breakTracker.hit(actorId, rule.windowMillis());
         if (hits == rule.maxHits() + 1) {
             engine.observe(Observation.of(SourceType.ACTION, actorName, actorId,
                     "action/rapid-break",
                     "Rapid block breaking: more than " + rule.maxHits() + " blocks in " + rule.windowMillis() / 1000 + "s",
-                    "Last block: " + lastBlockDescription,
+                    "Last block: " + materialName + " at " + where,
                     rule.score(), rule.severity()));
         }
     }

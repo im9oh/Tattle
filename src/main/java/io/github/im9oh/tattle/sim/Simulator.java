@@ -177,8 +177,9 @@ public final class Simulator implements TattleContext {
                 case "log" -> console.inspect(line.substring(cmd.length()).trim(), "INFO");
                 case "break" -> {
                     int count = parts.length >= 3 ? Integer.parseInt(parts[2]) : 1;
+                    String material = parts.length >= 4 ? parts[3] : "STONE";
                     for (int i = 0; i < count; i++) {
-                        actions.blockBreak(parts[1], uuid(parts[1]), "STONE at world (0, 64, 0)");
+                        actions.blockBreak(parts[1], uuid(parts[1]), material, "world (0, 64, 0)");
                     }
                 }
                 case "use", "place" -> actions.watchedItem(parts[1], uuid(parts[1]),
@@ -246,7 +247,7 @@ public final class Simulator implements TattleContext {
                   cmd <player> <command...>        simulate a player command
                   concmd <command...>              simulate a console command
                   log <line...>                    simulate a console log line
-                  break <player> [count]           simulate block breaks
+                  break <player> [count] [material]  simulate block breaks
                   place <player> <MATERIAL>        simulate placing an item (e.g. TNT)
                   use <player> <MATERIAL>          simulate using an item (e.g. FLINT_AND_STEEL)
                   gamemode <player> <MODE>         simulate a gamemode change
