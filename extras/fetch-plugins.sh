@@ -73,5 +73,6 @@ fetch GriefPrevention modrinth:griefprevention || status=1
 fetch SilkSpawners modrinth:silkspawners modrinth:silk-spawners || status=1
 fetch AuctionHouse modrinth:auction-house modrinth:auctionhouse "search:auction house" spiget:60325 || status=1
 fetch Chunky modrinth:chunky || status=1
+fetch Seasons modrinth:realisticseasons modrinth:seasonsplus "search:seasons plugin" || status=1
 ls -la dist/plugins
 exit ${status}
