@@ -42,16 +42,25 @@ jobs:
           name: Tattle
           path: target/Tattle-*.jar
 
-      # Commit the built jar back to the deploy branch so environments
-      # without access to artifact storage can fetch it over git.
-      - name: Commit jar to deploy branch
+      - name: Build ClaimDeeds
+        if: github.ref == 'refs/heads/claude/tattle-minecraft-deploy-ldhlpx'
+        run: mvn -B -f extras/claimdeeds/pom.xml package
+
+      - name: Fetch third-party plugins from Modrinth
+        if: github.ref == 'refs/heads/claude/tattle-minecraft-deploy-ldhlpx'
+        run: bash extras/fetch-plugins.sh
+
+      # Commit built + fetched jars back to the deploy branch so environments
+      # without access to artifact storage can fetch them over git.
+      - name: Commit jars to deploy branch
         if: github.ref == 'refs/heads/claude/tattle-minecraft-deploy-ldhlpx'
         run: |
-          mkdir -p dist
+          mkdir -p dist/plugins
           cp target/Tattle-*.jar dist/
+          cp extras/claimdeeds/target/ClaimDeeds-*.jar dist/plugins/
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -f dist/*.jar
+          git add -f dist
           git diff --cached --quiet && exit 0
-          git commit -m "CI: publish built jar to dist/ [skip ci]"
+          git commit -m "CI: publish built jars and fetched plugins to dist/ [skip ci]"
           git push
