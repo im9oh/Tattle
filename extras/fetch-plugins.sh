@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
-# Fetch third-party plugin jars from Modrinth into dist/plugins/.
-# Runs in CI (full network); the deploy environment can then pull them over git.
+# Fetch third-party plugin jars into dist/plugins/.
+# Runs in CI (full network); the deploy environment then pulls them over git.
+# Sources per plugin, tried in order:
+#   modrinth:<slug>    exact Modrinth project
+#   search:<query>     Modrinth search, best plugin hit
+#   spiget:<id>        SpigotMC resource via spiget.org
 set -uo pipefail
 mkdir -p dist/plugins
 
@@ -20,26 +24,53 @@ for v in versions:
 "
 }
 
+modrinth_slug_url() {
+  curl -sf "https://api.modrinth.com/v2/project/$1/version" | pick_url
+}
+
+search_slug() {
+  curl -sf "https://api.modrinth.com/v2/search?query=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1]))" "$1")&limit=5" \
+    | python3 -c "
+import json, sys
+hits = json.load(sys.stdin).get('hits', [])
+for h in hits:
+    if h.get('project_type') in (None, 'plugin', 'mod'):
+        print(h['slug'])
+        break
+"
+}
+
 fetch() {
   local name="$1"; shift
-  for slug in "$@"; do
-    echo "resolving ${name} via modrinth slug '${slug}'..."
-    local url
-    url=$(curl -sf "https://api.modrinth.com/v2/project/${slug}/version" | pick_url)
+  for source in "$@"; do
+    local kind="${source%%:*}" arg="${source#*:}" url=""
+    echo "trying ${name} via ${kind}:${arg}..."
+    case "${kind}" in
+      modrinth) url=$(modrinth_slug_url "${arg}") ;;
+      search)
+        local slug
+        slug=$(search_slug "${arg}")
+        [ -n "${slug}" ] && echo "  search matched slug '${slug}'" && url=$(modrinth_slug_url "${slug}")
+        ;;
+      spiget) url="https://api.spiget.org/v2/resources/${arg}/download" ;;
+    esac
     if [ -n "${url:-}" ]; then
-      echo "downloading ${name}: ${url}"
-      if curl -sfL "${url}" -o "dist/plugins/${name}.jar"; then
+      echo "  downloading: ${url}"
+      if curl -sfL -A "GeekedSMP-deploy/1.0" "${url}" -o "dist/plugins/${name}.jar" \
+         && [ "$(stat -c%s "dist/plugins/${name}.jar")" -gt 10000 ]; then
+        echo "  OK ($(stat -c%s "dist/plugins/${name}.jar") bytes)"
         return 0
       fi
+      rm -f "dist/plugins/${name}.jar"
     fi
   done
-  echo "ERROR: could not fetch ${name} from any slug" >&2
+  echo "ERROR: could not fetch ${name} from any source" >&2
   return 1
 }
 
 status=0
-fetch GriefPrevention griefprevention grief-prevention || status=1
-fetch SilkSpawners silkspawners silk-spawners silkspawnersv2 || status=1
-fetch AuctionHouse auction-house auctionhouse || status=1
+fetch GriefPrevention modrinth:griefprevention || status=1
+fetch SilkSpawners modrinth:silkspawners modrinth:silk-spawners || status=1
+fetch AuctionHouse modrinth:auction-house modrinth:auctionhouse "search:auction house" spiget:60325 || status=1
 ls -la dist/plugins
 exit ${status}
