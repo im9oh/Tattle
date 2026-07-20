@@ -1,0 +1,15 @@
+name: ClaimDeeds
+version: ${project.version}
+main: io.github.im9oh.claimdeeds.ClaimDeedsPlugin
+api-version: '1.21'
+description: Physical claim-block vouchers for GriefPrevention.
+softdepend: [GriefPrevention]
+commands:
+  claimdeed:
+    description: Give claim deed items.
+    usage: /<command> give <player> <blocks> [count]
+    permission: claimdeeds.give
+permissions:
+  claimdeeds.give:
+    description: Allows giving claim deeds.
+    default: op

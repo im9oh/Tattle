@@ -1,0 +1,29 @@
+# ClaimDeeds — physical claim-block vouchers for GriefPrevention.
+#
+# A deed is a real item: it stacks, trades, sells in shops (QuickShop etc.).
+# Right-clicking one consumes it and adds its blocks to the player's
+# GriefPrevention bonus claim block balance.
+
+# Chance (0.0 - 1.0) that an eligible naturally generated chest contains a deed.
+chest-chance: 0.25
+
+# Possible deed sizes; one is picked at random when loot spawns a deed.
+deed-sizes: [25, 50, 75, 100]
+
+# Which loot tables can contain deeds (substring match on the loot table key,
+# e.g. "minecraft:chests/village/village_toolsmith" matches "chests/village").
+loot-tables:
+  - chests/village
+  - chests/simple_dungeon
+  - chests/abandoned_mineshaft
+  - chests/stronghold
+  - chests/desert_pyramid
+  - chests/jungle_temple
+  - chests/shipwreck_treasure
+  - chests/buried_treasure
+  - chests/ancient_city
+  - chests/end_city_treasure
+
+# Console command run when a deed is redeemed. %player% and %blocks% are
+# replaced. Default targets GriefPrevention's /adjustbonusclaimblocks.
+redeem-command: "acb %player% %blocks%"
