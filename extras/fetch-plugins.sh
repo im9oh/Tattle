@@ -74,5 +74,33 @@ fetch SilkSpawners modrinth:silkspawners modrinth:silk-spawners || status=1
 fetch AuctionHouse modrinth:auction-house modrinth:auctionhouse "search:auction house" spiget:60325 || status=1
 fetch Chunky modrinth:chunky || status=1
 fetch Seasons modrinth:realisticseasons modrinth:seasonsplus "search:seasons plugin" || status=1
-ls -la dist/plugins
+
+# ── datapacks ────────────────────────────────────────────────────────────
+pick_datapack_url() {
+  python3 -c "
+import json, sys
+versions = json.load(sys.stdin)
+for v in versions:
+    if 'datapack' not in v.get('loaders', []):
+        continue
+    files = v.get('files', [])
+    primary = next((f for f in files if f.get('primary')), files[0] if files else None)
+    if primary and primary['filename'].endswith('.zip'):
+        print(primary['url'])
+        break
+"
+}
+
+mkdir -p dist/datapacks
+echo "fetching Terralith datapack..."
+dp_url=$(curl -sf "https://api.modrinth.com/v2/project/terralith/version" | pick_datapack_url)
+if [ -n "${dp_url:-}" ] && curl -sfL "${dp_url}" -o dist/datapacks/Terralith.zip \
+   && [ "$(stat -c%s dist/datapacks/Terralith.zip)" -gt 10000 ]; then
+  echo "Terralith OK ($(stat -c%s dist/datapacks/Terralith.zip) bytes)"
+else
+  echo "ERROR: Terralith datapack fetch failed" >&2
+  status=1
+fi
+
+ls -la dist/plugins dist/datapacks
 exit ${status}
