@@ -74,6 +74,9 @@ fetch SilkSpawners modrinth:silkspawners modrinth:silk-spawners || status=1
 fetch AuctionHouse modrinth:auction-house modrinth:auctionhouse "search:auction house" spiget:60325 || status=1
 fetch Chunky modrinth:chunky || status=1
 fetch Seasons modrinth:realisticseasons modrinth:seasonsplus "search:seasons plugin" || status=1
+# Staged for Kinetic migration (exaroton cannot host SVC + Geyser on one UDP port):
+fetch SimpleVoiceChat modrinth:simple-voice-chat || status=1
+fetch SimpleVoiceGeyser "search:SimpleVoice-Geyser" spiget:132386 || true
 
 # ── datapacks ────────────────────────────────────────────────────────────
 pick_datapack_url() {
